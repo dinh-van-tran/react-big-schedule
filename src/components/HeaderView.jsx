@@ -15,40 +15,90 @@ function HeaderView({ schedulerData, nonAgendaCellHeaderTemplateResolver }) {
 
   if (cellUnit === CellUnit.Hour) {
     headers.forEach((item, index) => {
-      if (index % minuteStepsInHour === 0) {
-        const datetime = localeDayjs(new Date(item.time));
+      if (index % minuteStepsInHour !== 0) {
+        return;
+      }
 
-        style = item.nonWorkingTime
-          ? {
-            width: cellWidth * minuteStepsInHour,
-            color: config.nonWorkingTimeHeadColor,
-            backgroundColor: config.nonWorkingTimeHeadBgColor,
-          }
-          : {
-            width: cellWidth * minuteStepsInHour,
-          };
+      const datetime = localeDayjs(new Date(item.time));
 
-        if (index === headers.length - minuteStepsInHour) {
-          style = item.nonWorkingTime ? { color: config.nonWorkingTimeHeadColor, backgroundColor: config.nonWorkingTimeHeadBgColor } : {};
+      style = item.nonWorkingTime
+        ? {
+          width: cellWidth * minuteStepsInHour,
+          color: config.nonWorkingTimeHeadColor,
+          backgroundColor: config.nonWorkingTimeHeadBgColor,
         }
+        : {
+          width: cellWidth * minuteStepsInHour,
+        };
 
-        const pFormattedList = config.nonAgendaDayCellHeaderFormat.split('|').map(pitem => datetime.format(pitem));
-        let element;
+      if (index === headers.length - minuteStepsInHour) {
+        style = item.nonWorkingTime ? { color: config.nonWorkingTimeHeadColor, backgroundColor: config.nonWorkingTimeHeadBgColor } : {};
+      }
 
-        if (typeof nonAgendaCellHeaderTemplateResolver === 'function') {
-          element = nonAgendaCellHeaderTemplateResolver(schedulerData, item, pFormattedList, style);
+      const pFormattedList = config.nonAgendaDayCellHeaderFormat.split('|').map(pitem => datetime.format(pitem));
+      let element;
+
+      if (typeof nonAgendaCellHeaderTemplateResolver === 'function') {
+        element = nonAgendaCellHeaderTemplateResolver(schedulerData, item, pFormattedList, style);
+      } else {
+        const pList = pFormattedList.map((formattedItem, pIndex) => <div key={pIndex}>{formattedItem}</div>);
+
+        element = (
+          <th key={`header-${item.time}`} className="header3-text" style={style}>
+            <div>{pList}</div>
+          </th>
+        );
+      }
+      headerList.push(element);
+    });
+
+    const groupByDayCounter = [];
+    headers.forEach((item, index) => {
+      if (index % minuteStepsInHour !== 0) {
+        return;
+      }
+
+      const datetime = localeDayjs(new Date(item.time));
+      const groupKey = datetime.format('DD/MM/YYYY');
+
+      if (groupByDayCounter.length === 0) {
+        groupByDayCounter.push({
+          date: groupKey,
+          count: 1,
+        })
+      } else {
+        const lastGroup = groupByDayCounter[groupByDayCounter.length - 1];
+        if (lastGroup.date === groupKey) {
+          lastGroup.count++;
         } else {
-          const pList = pFormattedList.map((formattedItem, pIndex) => <div key={pIndex}>{formattedItem}</div>);
-
-          element = (
-            <th key={`header-${item.time}`} className="header3-text" style={style}>
-              <div>{pList}</div>
-            </th>
-          );
+          groupByDayCounter.push({
+            date: groupKey,
+            count: 1,
+          });
         }
-        headerList.push(element);
       }
     });
+
+    const groupHeaderList = [];
+    for (const group of groupByDayCounter) {
+      const { date, count } = group;
+
+      const element = (
+        <th key={`group-header-${date}`} className="header3-text" colSpan={count}>
+          <div>{date}</div>
+        </th>
+      );
+
+      groupHeaderList.push(element);
+    }
+
+
+    return (
+      <thead>
+        <tr style={{ height: headerHeight / 2 }}>{groupHeaderList}</tr>
+        <tr style={{ height: headerHeight / 2 }}>{headerList}</tr>
+      </thead>
+    );
   } else {
     headerList = headers.map((item, index) => {
       const datetime = localeDayjs(new Date(item.time));
