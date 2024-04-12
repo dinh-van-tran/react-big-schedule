@@ -59,7 +59,7 @@ function HeaderView({ schedulerData, nonAgendaCellHeaderTemplateResolver }) {
       }
 
       const datetime = localeDayjs(new Date(item.time));
-      const groupKey = datetime.format('DD/MM/YYYY');
+      const groupKey = datetime.format('dd DD/MM/YYYY');
 
       if (groupByDayCounter.length === 0) {
         groupByDayCounter.push({
